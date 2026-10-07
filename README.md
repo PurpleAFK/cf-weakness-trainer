@@ -17,10 +17,16 @@ Codeforces API ──> fetch_data.py ──> data/raw/*.json snapshots
                recommender.py: weak + under-practiced tags -> unsolved problems in the window
                        │
                        v
-               llm.py (optional): profile -> LLM -> validated JSON coaching notes (or fallback)
+               rag.py: per focus tag, tag-filtered cosine search over knowledge/ notes
+                       │      (63 sections, bge-small embeddings, committed index)
+                       v
+               llm.py (optional): profile + retrieved notes -> LLM (JSON schema)
+                       -> validated, cited coaching notes (or rule-based fallback)
                        │
                        v
                app.py (Streamlit)  /  coach.py (CLI)
+
+               evals/: 15 cases x 11 checks against a real model; retrieval comparison
 ```
 
 - **Attempt:** one row per problem. Wrong submits are counted only before the first AC; compilation
@@ -35,9 +41,21 @@ Codeforces API ──> fetch_data.py ──> data/raw/*.json snapshots
   100, then +100 to +300.
 - **Ordering:** problems you tried and failed come first, then a rating ladder (most-solved problem at
   each rating), with focus tags taking turns.
-- **LLM notes:** only aggregate stats are sent. The reply must match a pydantic schema and mention
-  exactly the focus tags. Otherwise it is retried once with the error, then replaced by a rule-based
-  summary.
+- **RAG:** `knowledge/` holds 19 technique notes split into one-idea sections (55–110 words), with a
+  title path prepended before embedding (`BAAI/bge-small-en-v1.5`, via fastembed on CPU). Retrieval
+  is hybrid: filter to notes tagged with the focus tag, then rank by cosine similarity (mistakes for
+  weak tags, basics for under-practiced). Pure dense search couldn't tell "no relevant note" from a
+  relevant one, see `evals/RETRIEVAL.md`.
+- **LLM notes:** only aggregate stats are sent, plus the retrieved notes. Each hint cites the note it
+  used. Where the server supports it (llama.cpp), a per-request JSON schema constrains decoding
+  (exact tags, allowed note ids, diagnoses forced to start with the profile's numbers). Every reply
+  is also validated in code (pydantic, exact tags, no duplicates, valid citations, numbers present),
+  retried once with the error, then replaced by a rule-based summary.
+- **Safety:** handle regex, tag allowlist, retrieved notes with instruction-like text dropped, data in
+  delimited blocks, no tools, API key only from the environment and never logged.
+- **Evals:** `python -m evals.run_evals` runs 15 fixed cases (including prompt injection through a
+  tag name and through a poisoned note) and 11 checks, and compares configurations in
+  `evals/RESULTS.md`.
 
 ## Setup
 
@@ -59,9 +77,22 @@ Optional LLM notes (any OpenAI-compatible endpoint):
 
 ```bash
 export GROQ_API_KEY=...                 # hosted, free tier: https://console.groq.com
-# or, fully local:
-export LLM_PROVIDER=ollama              # with `ollama serve` running and the model pulled
-export LLM_MODEL=qwen2.5:7b-instruct    # optional model override
+# or fully local with llama.cpp (CPU, ~1.1 GB model; what the evals used):
+#   download llama-<build>-bin-ubuntu-x64.tar.gz from github.com/ggml-org/llama.cpp/releases and
+#   qwen2.5-1.5b-instruct-q4_k_m.gguf from huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF, then
+#   llama-server -m qwen2.5-1.5b-instruct-q4_k_m.gguf --port 8080 -c 8192
+export LLM_PROVIDER=llamacpp
+# or Ollama:  export LLM_PROVIDER=ollama
+export LLM_MODEL=...                    # optional model override
+```
+
+RAG and evals:
+
+```bash
+python rag.py                           # rebuild knowledge/index.* after editing knowledge/*.md
+python -m evals.retrieval_eval          # dense vs hybrid retrieval -> evals/RETRIEVAL.md
+LLM_PROVIDER=llamacpp python -m evals.run_evals --repeat 2      # -> evals/RESULTS.md
+python -m evals.run_evals --no-schema | --no-facts | --no-rag | --no-filters   # A/B configs
 ```
 
 ## Files
@@ -74,7 +105,10 @@ export LLM_MODEL=qwen2.5:7b-instruct    # optional model override
 | `recommender.py` | Problem pool, under-practiced tags, recommendations |
 | `coach.py` | End-to-end pipeline + CLI, handle validation, snapshot caching |
 | `cohort.py` | Builds the ~25-user cohort and `cohort_baseline.json` |
-| `llm.py` | Prompt, schema, validation/retry/fallback, OpenAI-compatible client |
+| `rag.py` | Chunking, embeddings, vector store, tag-filtered retrieval, injection filter |
+| `knowledge/` | CP technique notes (RAG source) and the committed index |
+| `llm.py` | Prompt, notes, JSON schema, validation/retry/fallback, OpenAI-compatible client |
+| `evals/` | Eval cases, checks, runner, results; retrieval eval |
 | `app.py` | Streamlit UI |
 | `audit.py` | Early exploratory script |
 
@@ -103,17 +137,17 @@ UI and deploy:
 - [ ] Un-containerized deploy (e.g. Streamlit Community Cloud)
 
 LLM layer:
-- [ ] Open-source model (Llama or Qwen via Ollama or Groq) explains weak tags and gives hints (code + fake-client tests done; not yet run against a real model)
+- [x] Open-source model explains weak tags and gives hints (verified with Qwen2.5-1.5B-Instruct via llama.cpp; Groq/Ollama configs untested)
 - [x] Structured JSON output with schema validation and retry on bad JSON
 - [x] No secrets or user data in logs
 
 RAG (cut if not working):
-- [ ] CP notes/editorials (e.g. CPH) chunked, embedded and stored in a vector store
-- [ ] Retrieved chunks fed into the hint prompt; chunk size and model choice written down with reasons
+- [x] CP notes chunked, embedded and stored in a vector store (own notes in `knowledge/`; CPH not copied for copyright reasons)
+- [x] Retrieved chunks fed into the hint prompt with citations; chunk size and model choice written down with reasons
 
 Evals:
-- [ ] 10–20 test cases comparing outputs to expected behavior
-- [ ] At least one prompt-injection case
+- [x] 15 eval cases × 11 checks against a real model (`evals/RESULTS.md`)
+- [x] Two prompt-injection cases (tag name, poisoned note)
 
 Ship:
 - [ ] Dockerfile (after the un-containerized deploy works)
