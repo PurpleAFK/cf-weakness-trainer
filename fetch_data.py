@@ -38,9 +38,7 @@ def fetch_all_status(handle, page_size=100):
     all_submissions = []
     from_idx = 1
     while True:
-        page = fetch(
-            "user.status", {"handle": handle, "from": from_idx, "count": page_size}
-        )
+        page = fetch("user.status", {"handle": handle, "from": from_idx, "count": page_size})
         all_submissions.extend(page)
         if len(page) != page_size:
             break
