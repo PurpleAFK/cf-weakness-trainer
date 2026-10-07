@@ -8,6 +8,7 @@ import requests
 import streamlit as st
 
 import llm
+import rag
 from coach import analyze, load_baseline, load_problemset, load_user, valid_handle
 
 st.set_page_config(page_title="CF Practice Coach", page_icon="🎯", layout="wide")
@@ -21,6 +22,12 @@ def cached_user(handle):
 @st.cache_data(ttl=24 * 3600, show_spinner="Loading the problemset…")
 def cached_problemset():
     return load_problemset()
+
+
+@st.cache_resource(show_spinner="Loading the notes index…")
+def cached_retriever():
+    # cache_resource: one shared embedding model per server process, never copied
+    return rag.default_retriever()
 
 
 st.title("🎯 CF Practice Coach")
@@ -70,15 +77,18 @@ st.subheader("Coach's notes")
 client = llm.client_from_env()
 if client is None:
     st.caption(
-        "LLM explanations are off. Set `GROQ_API_KEY` (or `LLM_PROVIDER=ollama` with Ollama "
-        "running) to turn them on. Showing the rule-based summary instead."
+        "LLM explanations are off. Set `GROQ_API_KEY` (or `LLM_PROVIDER=ollama`/`llamacpp` with a "
+        "local server running) to turn them on. Showing the rule-based summary instead."
     )
 if st.button("Explain my weak spots", disabled=client is None) or client is None:
+    retriever = cached_retriever()
     with st.spinner("Asking the model…"):
-        report, meta = llm.explain(ctx, client)
+        report, meta = llm.explain(ctx, client, retriever)
+    titles = {c.id: c.title for c in retriever.store.chunks} if retriever else {}
     st.markdown(f"**{report.summary}**")
     for t in report.tags:
-        st.markdown(f"- **{t.tag}**: {t.diagnosis}  \n  💡 {t.hint}")
+        cite = f"  \n  📚 *{titles.get(t.source, t.source)}*" if t.source else ""
+        st.markdown(f"- **{t.tag}**: {t.diagnosis}  \n  💡 {t.hint}{cite}")
     st.markdown(f"**Next step:** {report.next_step}")
     if client is not None:
         label = f"model `{client.model}`" if meta["source"] == "llm" else "rule-based fallback"

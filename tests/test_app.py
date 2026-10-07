@@ -6,6 +6,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 import coach
+import rag
 from tests.factories import problemset, sub
 
 APP = str(Path(__file__).resolve().parent.parent / "app.py")
@@ -17,6 +18,7 @@ def fake_api(monkeypatch):
     ps = problemset([(50, "A", 1100, ("math",), 100), (51, "A", 1200, ("dp",), 50)])
     monkeypatch.setattr(coach, "load_user", lambda handle: (status, [{"newRating": 1000}]))
     monkeypatch.setattr(coach, "load_problemset", lambda: ps)
+    monkeypatch.setattr(rag, "default_retriever", lambda: None)  # no model download in tests
 
 
 def test_app_asks_for_a_handle():
