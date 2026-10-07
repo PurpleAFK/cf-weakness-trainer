@@ -86,26 +86,26 @@ Done:
 - [x] Cohort rule written down in `NOTES.md`
 
 Cleanup:
-- [ ] `fetch_data.py`: handle passed as an argument instead of `HANDLE = input(...)` at module scope (importing it currently blocks on a prompt)
-- [ ] `audit.py`: wrapped in a function, no hardcoded snapshot path in `data/raw/`
-- [ ] Skip rule settled: `NOTES.md` says "<5 contests **and** 50 problems", the plan says **or**
-- [ ] `requirements.txt` trimmed to direct dependencies (or marked as a full freeze)
+- [x] `fetch_data.py`: handle passed as an argument instead of `HANDLE = input(...)` at module scope (importing it no longer blocks on a prompt)
+- [x] `audit.py`: wrapped in a function, no hardcoded snapshot path in `data/raw/`
+- [x] Skip rule settled: **or** (skip if < 5 contests or < 50 solved); sampling changed to a seeded shuffle, see `NOTES.md`
+- [x] `requirements.txt` trimmed to direct dependencies (or marked as a full freeze)
 
 Core recommender:
-- [ ] Cohort: standings of the 3 most recent Div. 2 contests → rating 800–1600 → first ~20–25 handles → apply the skip rule
-- [ ] Cohort data fetched and snapshotted
-- [ ] Weakness profiler: per-tag and per-rating-band solve rate / attempts-before-AC from verdicts
-- [ ] Recommender: unsolved problems in weak tags at a rating just above the comfort band
-- [ ] Tests for the profiler and recommender (small fixture JSON)
+- [x] Cohort: 3 most recent Div. 2 contests → rating 800–1600 → seeded shuffle → first 25 handles passing the skip rule
+- [x] Cohort data fetched and snapshotted
+- [x] Weakness profiler: per-tag and per-rating-band solve rate / attempts-before-AC from verdicts
+- [x] Recommender: unsolved problems in weak tags at a rating just above the comfort band
+- [x] Tests for the profiler and recommender (small fake API data built in `tests/factories.py`)
 
 UI and deploy:
-- [ ] Streamlit app that calls the Python functions directly (no FastAPI in v1)
+- [x] Streamlit app that calls the Python functions directly (no FastAPI in v1)
 - [ ] Un-containerized deploy (e.g. Streamlit Community Cloud)
 
 LLM layer:
-- [ ] Open-source model (Llama or Qwen via Ollama or Groq) explains weak tags and gives hints
-- [ ] Structured JSON output with schema validation and retry on bad JSON
-- [ ] No secrets or user data in logs
+- [ ] Open-source model (Llama or Qwen via Ollama or Groq) explains weak tags and gives hints (code + fake-client tests done; not yet run against a real model)
+- [x] Structured JSON output with schema validation and retry on bad JSON
+- [x] No secrets or user data in logs
 
 RAG (cut if not working):
 - [ ] CP notes/editorials (e.g. CPH) chunked, embedded and stored in a vector store
