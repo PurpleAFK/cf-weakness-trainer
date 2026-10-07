@@ -2,3 +2,4 @@ data/raw/*.json
 data/processed/*
 __pycache__/
 *.pyc
+*.db
