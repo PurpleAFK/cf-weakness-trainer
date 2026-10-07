@@ -1,3 +1,9 @@
+"""Codeforces API client: rate-limited calls, pagination, and raw JSON snapshots.
+
+Usage:  python fetch_data.py <handle>
+"""
+
+import argparse
 import json
 import time
 from datetime import date
@@ -5,7 +11,6 @@ from pathlib import Path
 
 import requests
 
-HANDLE = input("Enter handle: ")
 BASE = "https://codeforces.com/api"
 
 
@@ -14,9 +19,9 @@ _last_call_time = 0
 
 def fetch(endpoint, params=None):
     global _last_call_time
-    elasped = time.time() - _last_call_time
-    if elasped < 2.2:
-        time.sleep(2.2 - elasped)
+    elapsed = time.time() - _last_call_time
+    if elapsed < 2.2:
+        time.sleep(2.2 - elapsed)
 
     url = f"{BASE}/{endpoint}"
     resp = requests.get(url, params=params, timeout=30)
@@ -52,19 +57,29 @@ def fetch_problemset():
     return fetch("problemset.problems", {})
 
 
-def save_raw(endpoint, handle, data):
-    Path("data/raw").mkdir(parents=True, exist_ok=True)
-    fname = f"data/raw/{date.today()}_{endpoint}_{handle}.json"
+def fetch_user_info(handles):
+    """Current rating etc. for many handles in one call (the API takes a ;-separated list)."""
+    return fetch("user.info", {"handles": ";".join(handles)})
+
+
+def save_raw(endpoint, handle, data, raw_dir="data/raw"):
+    Path(raw_dir).mkdir(parents=True, exist_ok=True)
+    fname = f"{raw_dir}/{date.today()}_{endpoint}_{handle}.json"
     with open(fname, "w") as f:
         json.dump(data, f)
     print(f"Saved {fname}")
+    return fname
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("handle")
+    args = parser.parse_args()
+
+    save_raw("user.status", args.handle, fetch_all_status(args.handle))
+    save_raw("user.rating", args.handle, fetch_rating(args.handle))
+    save_raw("problemset.problems", "all", fetch_problemset())  # not per-user
 
 
 if __name__ == "__main__":
-    # status = fetch("user.status", {"handle": HANDLE})
-    status = fetch_all_status(HANDLE)
-    rating = fetch_rating(HANDLE)
-    problemset = fetch_problemset()
-    save_raw("user.status", HANDLE, status)
-    save_raw("user.rating", HANDLE, rating)
-    save_raw("problemset.problems", HANDLE, problemset)
+    main()
