@@ -3,3 +3,5 @@ requests>=2.32
 pandas>=2.2
 streamlit>=1.40
 pydantic>=2.7
+numpy>=1.26
+fastembed>=0.4      # embeddings for RAG (ONNX, CPU; downloads bge-small on first use)

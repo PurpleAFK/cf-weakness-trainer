@@ -1,0 +1,539 @@
+{
+ "model": "BAAI/bge-small-en-v1.5",
+ "fingerprint": "8381411eb9ffaf86",
+ "chunks": [
+  {
+   "id": "binary-search#1",
+   "title": "Binary search > Binary search on a sorted array",
+   "text": "Binary search finds a value or a boundary in a sorted array in O(log n) by halving the search range each step. Keep an invariant such as \"the answer is always in [lo, hi]\" and shrink the range while keeping it true. In C++ use lower_bound (first element >= x) and upper_bound (first element > x) instead of writing it by hand; the number of elements equal to x is upper_bound - lower_bound. Typical uses: counting elements in a range of values, finding the closest element to a query, and answering many queries on a sorted list after one O(n log n) sort.",
+   "tags": [
+    "binary search"
+   ]
+  },
+  {
+   "id": "binary-search#2",
+   "title": "Binary search > Binary search on the answer",
+   "text": "Many problems ask for the minimum or maximum value X such that some condition holds, where the condition is monotonic: if X works, every larger X also works (or every smaller one). Then binary search over X and write a check(X) function, usually a greedy O(n) pass. Examples: the minimum time for k machines to make n items, the maximum minimum distance when placing cows in stalls, the smallest maximum segment sum when splitting an array into k parts. Total cost is O(n log(range)). The key insight to state in an editorial-style explanation is why check(X) is monotonic.",
+   "tags": [
+    "binary search"
+   ]
+  },
+  {
+   "id": "binary-search#3",
+   "title": "Binary search > Common mistakes in binary search",
+   "text": "Off-by-one errors and infinite loops are the classic failures. Pick one template and always use it, for example: while (hi - lo > 1) { mid = lo + (hi - lo) / 2; if (check(mid)) hi = mid; else lo = mid; } with check(lo) false and check(hi) true. Compute mid as lo + (hi - lo) / 2 to avoid overflow, and use long long when the answer range reaches 1e18. Make sure the initial hi really satisfies the condition. On real numbers, run a fixed number of iterations (100) instead of comparing with an epsilon.",
+   "tags": [
+    "binary search"
+   ]
+  },
+  {
+   "id": "binary-search#4",
+   "title": "Binary search > How to practice binary search",
+   "text": "Start with problems where the array is already sorted and you only need lower_bound, then move to binary search on the answer, which is far more common in Div. 2 B and C problems. For each problem, write down the monotonic predicate in one sentence before coding. If a problem says \"minimize the maximum\" or \"maximize the minimum\", binary search on the answer is the first idea to test.",
+   "tags": [
+    "binary search"
+   ]
+  },
+  {
+   "id": "bitmasks#1",
+   "title": "Bit manipulation > Bit operations you need",
+   "text": "Use AND, OR, XOR and shifts to work with bits: x & (1 << i) tests bit i, x | (1 << i) sets it, x ^ (1 << i) flips it, and x & (x - 1) removes the lowest set bit. __builtin_popcount counts set bits (use the ll version for long long). XOR facts solve many problems: a ^ a = 0, a ^ 0 = a, XOR is commutative, so XOR of an array cancels pairs, and prefix XOR gives any range XOR in O(1).",
+   "tags": [
+    "bitmasks"
+   ]
+  },
+  {
+   "id": "bitmasks#2",
+   "title": "Bit manipulation > Iterating over subsets",
+   "text": "A bitmask of n bits represents a subset of n items, so for n up to about 20 you can enumerate all 2^n subsets with a loop from 0 to (1 << n) - 1. Bitmask DP stores dp[mask] for subsets, as in the travelling salesman problem (dp[mask][last]) in O(2^n n^2). Submasks of a mask can be enumerated with s = (s - 1) & mask, and doing that for all masks totals O(3^n).",
+   "tags": [
+    "bitmasks"
+   ]
+  },
+  {
+   "id": "bitmasks#3",
+   "title": "Bit manipulation > Thinking bit by bit",
+   "text": "Many problems with AND, OR or XOR become easy when you treat each bit independently, because these operations do not carry between bits. Ask what happens to bit 30, then bit 29, and so on; greedy from the highest bit down often gives the maximum XOR or OR. For sums of XOR over all pairs, count for each bit how many numbers have it set (c) and add c * (n - c) * 2^bit. Remember that 1 << 31 overflows int, so write 1LL << i for large shifts.",
+   "tags": [
+    "bitmasks"
+   ]
+  },
+  {
+   "id": "combinatorics#1",
+   "title": "Combinatorics and counting > Counting basics",
+   "text": "The number of ways to choose k items from n is C(n, k) = n! / (k! (n-k)!). Precompute factorials and inverse factorials modulo a prime up to n once, then every C(n, k) is O(1). Rules to combine counts: multiply for independent choices made in sequence, add for disjoint cases. Stars and bars counts the ways to split n identical items into k groups: C(n + k - 1, k - 1). Pascal's rule C(n, k) = C(n-1, k-1) + C(n-1, k) gives an O(n^2) table when n is small.",
+   "tags": [
+    "combinatorics",
+    "math"
+   ]
+  },
+  {
+   "id": "combinatorics#2",
+   "title": "Combinatorics and counting > Counting techniques",
+   "text": "Count the complement when the direct count is hard: total ways minus bad ways. Inclusion-exclusion counts the union of overlapping sets by alternately adding and subtracting intersections. Contribution technique: instead of enumerating all subarrays or pairs, count for each element how many of them it belongs to and add up its contribution; this turns O(n^2) sums over pairs into O(n). Double counting the same object from two sides is a frequent bug, so define exactly what is counted once.",
+   "tags": [
+    "combinatorics",
+    "math"
+   ]
+  },
+  {
+   "id": "combinatorics#3",
+   "title": "Combinatorics and counting > How to practice combinatorics",
+   "text": "Verify every formula with a brute force on small inputs, because off-by-one errors in counting are easy to make and hard to see. Write the factorial and inverse factorial template once and keep it. Practice the contribution technique specifically, since it appears in many Div. 2 C and D problems about sums over all subarrays.",
+   "tags": [
+    "combinatorics",
+    "math"
+   ]
+  },
+  {
+   "id": "constructive#1",
+   "title": "Constructive algorithms > How to approach constructive problems",
+   "text": "A constructive problem asks you to build any object (an array, a permutation, a string, a graph) that satisfies conditions, or to say that none exists. Start by solving tiny cases by hand, n = 1, 2, 3, 4, and look for a pattern you can generalize. Find the impossible cases first: often a parity argument, a sum constraint, or a counting bound shows when no answer exists. Then aim for a simple construction such as alternating values, sorting, or placing the largest element in a fixed position.",
+   "tags": [
+    "constructive algorithms"
+   ]
+  },
+  {
+   "id": "constructive#2",
+   "title": "Constructive algorithms > Common construction ideas",
+   "text": "Useful patterns: alternating high and low values to avoid equal neighbors, writing the answer in two halves, using 1 and n as special positions, sorting and then cyclically shifting, and building the answer greedily from left to right while keeping enough freedom for the rest. For permutations, consider what happens when you reverse or swap pairs. When a problem asks for at most n operations, there is usually one operation per element.",
+   "tags": [
+    "constructive algorithms"
+   ]
+  },
+  {
+   "id": "constructive#3",
+   "title": "Constructive algorithms > Checking a construction",
+   "text": "Constructive solutions fail by missing a corner case where the pattern breaks, typically n = 1, n = 2 or an odd n. Write a checker that verifies your output satisfies all conditions, and run it on all small n. Many accepted solutions are short, so if your construction needs many special cases, look for a simpler pattern.",
+   "tags": [
+    "constructive algorithms"
+   ]
+  },
+  {
+   "id": "data-structures#1",
+   "title": "Data structures for contests > Choosing the right container",
+   "text": "Most Div. 2 problems need only standard containers. Use a stack for matching brackets and \"nearest smaller element to the left\" (monotonic stack, O(n) total). Use a queue for BFS and a deque for sliding-window maximum. Use std::set or multiset when you need sorted order with insertions and deletions in O(log n), for example finding the closest available value with lower_bound. Use map or unordered_map for counting frequencies of large values. Use a priority_queue to repeatedly take the largest or smallest element, as in greedy scheduling and Dijkstra.",
+   "tags": [
+    "data structures"
+   ]
+  },
+  {
+   "id": "data-structures#2",
+   "title": "Data structures for contests > Monotonic stack",
+   "text": "A monotonic stack keeps indices whose values are increasing (or decreasing). For each new element, pop while the top is greater than or equal to it; the remaining top is the nearest smaller element to the left. Every index is pushed and popped once, so the total is O(n). It solves the largest rectangle in a histogram, the next greater element, and counting subarrays where a[i] is the minimum. When a brute force is O(n^2) because each element looks left for the nearest smaller value, a monotonic stack usually makes it linear.",
+   "tags": [
+    "data structures"
+   ]
+  },
+  {
+   "id": "data-structures#3",
+   "title": "Data structures for contests > Segment tree and Fenwick tree basics",
+   "text": "When you need both updates and range queries, prefix sums are not enough. A Fenwick tree (binary indexed tree) supports point update and prefix sum in O(log n) with about ten lines of code. A segment tree supports any associative operation such as sum, min, max or gcd over a range, with point updates in O(log n), and lazy propagation adds range updates. Around rating 1400 to 1600 these appear in problems like counting inversions or answering queries online.",
+   "tags": [
+    "data structures"
+   ]
+  },
+  {
+   "id": "data-structures#4",
+   "title": "Data structures for contests > Common mistakes with data structures",
+   "text": "Calling erase(value) on a multiset removes all copies; use erase(find(value)) to remove one. Accessing m[key] on a map inserts a default value, which can change size() and slow things down; use find or count to check membership. unordered_map can be hacked with anti-hash tests on Codeforces, so prefer map or add a custom hash. Iterating over a container while erasing from it invalidates iterators unless you use the iterator returned by erase.",
+   "tags": [
+    "data structures"
+   ]
+  },
+  {
+   "id": "dp#1",
+   "title": "Dynamic programming > How to design a DP",
+   "text": "Dynamic programming solves a problem by combining answers to smaller subproblems that overlap. Design it in four steps: define the state in words (dp[i] = the best answer using the first i elements), write the transition (how dp[i] is built from smaller states), set the base cases, and fix the order of computation so every state is computed before it is used. The answer is usually dp[n] or the best over all states. If you cannot describe the state in one sentence, the DP is not ready to code.",
+   "tags": [
+    "dp"
+   ]
+  },
+  {
+   "id": "dp#2",
+   "title": "Dynamic programming > Classic DP patterns",
+   "text": "Learn the patterns that keep repeating: one-dimensional DP over a prefix (climbing stairs, frog jump, maximum sum with no two adjacent), knapsack (dp[w] = best value with capacity w; iterate capacity backwards for 0/1 knapsack), longest increasing subsequence (O(n^2) DP, or O(n log n) with binary search), longest common subsequence and edit distance on two strings (dp[i][j]), and grid paths (dp[r][c] from the top and the left). Most Div. 2 C DP problems are one of these with a twist in the state.",
+   "tags": [
+    "dp"
+   ]
+  },
+  {
+   "id": "dp#3",
+   "title": "Dynamic programming > Adding information to the state",
+   "text": "When the transition needs to know something about the past, add it to the state. Examples: dp[i][last] when the next choice depends on the previous element, dp[i][k] when you may use at most k operations, and dp[i][0 or 1] for \"is the previous item taken\". The state size times the transition cost is the complexity, so check it against the limits: n = 2e5 allows O(n) or O(n log n) states, while n = 5000 allows O(n^2).",
+   "tags": [
+    "dp"
+   ]
+  },
+  {
+   "id": "dp#4",
+   "title": "Dynamic programming > Common mistakes in DP",
+   "text": "Wrong base cases and wrong iteration order cause most wrong answers. Initialize impossible states with -infinity or +infinity, not 0, when you take a max or min. Use long long when values add up, and take the modulo after every addition when the problem asks for counts modulo 1e9+7. Recursion with memoization is easier to write but can overflow the stack for n around 1e5 or more; switch to an iterative loop. Test on the smallest cases by hand first.",
+   "tags": [
+    "dp"
+   ]
+  },
+  {
+   "id": "dp#5",
+   "title": "Dynamic programming > How to practice DP",
+   "text": "Start with the CSES dynamic programming section or AtCoder Educational DP Contest (problems A to E), which teach the standard patterns one by one. For every problem, write the state definition as a comment before coding. Re-solve problems you failed after a few days without looking, because DP is learned by recognizing patterns, and recognition comes from repetition.",
+   "tags": [
+    "dp"
+   ]
+  },
+  {
+   "id": "dsu#1",
+   "title": "Disjoint set union > Disjoint set union (union-find)",
+   "text": "A DSU keeps a partition of elements into groups and supports two operations: find(x) returns the representative of x's group, and unite(a, b) merges two groups. With path compression and union by size, both run in nearly constant amortized time. It answers \"are these two vertices connected\" while edges are being added, counts components, and tracks group sizes. It is about fifteen lines of code and worth memorizing.",
+   "tags": [
+    "dsu",
+    "graphs"
+   ]
+  },
+  {
+   "id": "dsu#2",
+   "title": "Disjoint set union > Where DSU appears",
+   "text": "Kruskal's minimum spanning tree sorts edges by weight and adds each edge whose ends are in different groups. Offline connectivity problems process edges in a clever order, for example adding edges in decreasing weight to answer queries about thresholds, or reversing a sequence of deletions into additions. DSU also merges positions that must be equal, such as characters in a string that are forced to match. Common bug: calling find on the original element instead of the representative when merging sizes.",
+   "tags": [
+    "dsu",
+    "graphs"
+   ]
+  },
+  {
+   "id": "games#1",
+   "title": "Game theory > Winning and losing positions",
+   "text": "In two-player games with perfect information where the player who cannot move loses, every position is either winning (some move leads to a losing position) or losing (every move leads to a winning position). Compute this for small positions by brute force, then look for a pattern such as \"losing when n is divisible by k+1\" in subtraction games. Many Codeforces game problems are solved by symmetry or mirroring strategies, or by noticing that the first move decides everything.",
+   "tags": [
+    "games"
+   ]
+  },
+  {
+   "id": "games#2",
+   "title": "Game theory > Nim and Sprague-Grundy",
+   "text": "In Nim, the first player wins exactly when the XOR of all pile sizes is non-zero. The Sprague-Grundy theorem generalizes this: every impartial game position has a Grundy number (the mex of the Grundy numbers of the positions reachable in one move), and a sum of independent games is won by the first player when the XOR of their Grundy numbers is non-zero. Compute Grundy numbers for small sizes and look for periodicity.",
+   "tags": [
+    "games"
+   ]
+  },
+  {
+   "id": "graphs#1",
+   "title": "Graphs: BFS and DFS > Representing a graph",
+   "text": "Store a graph as an adjacency list: vector<vector<int>> adj(n), and for each edge (u, v) push v into adj[u] and u into adj[v] if the graph is undirected. This uses O(n + m) memory and lets you iterate a vertex's neighbors quickly. Grids are graphs too: each cell is a vertex and its neighbors are the four adjacent cells, which you can loop over with direction arrays dx and dy. An adjacency matrix only makes sense for small n, around 1000 or less.",
+   "tags": [
+    "graphs",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "graphs#2",
+   "title": "Graphs: BFS and DFS > Depth-first search",
+   "text": "DFS goes as deep as possible before backtracking, using recursion or an explicit stack. It finds connected components (run DFS from every unvisited vertex and count the runs), detects cycles, checks whether a graph is bipartite by two-coloring, and computes subtree information on trees. Each vertex and edge is processed once, so DFS is O(n + m). Recursive DFS can overflow the stack on a path of 1e5 or more vertices with some compilers; an iterative version avoids that.",
+   "tags": [
+    "graphs",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "graphs#3",
+   "title": "Graphs: BFS and DFS > Breadth-first search and shortest paths in unweighted graphs",
+   "text": "BFS visits vertices in order of distance from the source using a queue, so the first time it reaches a vertex is along a shortest path when every edge has the same weight. Use it for the minimum number of moves on a grid, the shortest chain of transformations, and distances from many sources at once (multi-source BFS: push all sources into the queue at distance 0). Keep a dist array initialized to -1 to mark unvisited vertices. With 0 and 1 edge weights, a deque-based 0-1 BFS still runs in O(n + m).",
+   "tags": [
+    "graphs",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "graphs#4",
+   "title": "Graphs: BFS and DFS > Common mistakes in graph problems",
+   "text": "Forgetting to reset visited arrays between test cases is the most common bug in multi-test problems. Vertices are often numbered from 1 in the input, so subtract one or size arrays n + 1. For grids, check bounds before reading a cell. Read the statement for whether the graph is directed, may contain self-loops or multiple edges, or may be disconnected. Recursive DFS on deep graphs needs care with stack size.",
+   "tags": [
+    "graphs",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "graphs#5",
+   "title": "Graphs: BFS and DFS > How to practice graphs",
+   "text": "Begin with counting components and BFS on grids, which appear often at ratings 1100 to 1400. Then do bipartite checking, cycle detection, and topological sort. The CSES graph section is an excellent ordered problem set. For each problem, first decide what the vertices and edges are; modeling the graph correctly is usually harder than running BFS or DFS.",
+   "tags": [
+    "graphs",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "greedy#1",
+   "title": "Greedy algorithms > What makes a greedy correct",
+   "text": "A greedy algorithm makes the locally best choice at each step and never undoes it. It is correct only if you can argue that some optimal solution makes the same choice. The standard proof is an exchange argument: take an optimal solution that differs from the greedy one, swap the differing choice for the greedy choice, and show the result is no worse. If you cannot sketch such an argument in two lines, test the greedy on small cases before submitting.",
+   "tags": [
+    "greedy"
+   ]
+  },
+  {
+   "id": "greedy#2",
+   "title": "Greedy algorithms > Classic greedy patterns",
+   "text": "Activity selection: to fit the most non-overlapping intervals, sort by end time and always take the interval that ends first. Scheduling to minimize lateness: sort by deadline. Coins: always taking the largest coin works for standard coin systems but not for arbitrary ones. Pairing problems: sort both arrays and match smallest with smallest, or smallest with largest, depending on the goal. Many greedy solutions start with sorting by the right key, and choosing that key is the whole difficulty.",
+   "tags": [
+    "greedy"
+   ]
+  },
+  {
+   "id": "greedy#3",
+   "title": "Greedy algorithms > Avoiding wrong greedy submissions",
+   "text": "Most wrong answers on greedy problems come from an idea that is plausible but false. Before submitting, try to break it: write a brute force for n up to 8 and compare outputs on random tests (stress testing), or try hand-made cases such as all equal values, a single element, and values in decreasing order. If a counterexample appears, the problem may need DP instead. Reading the constraints helps: n up to 2e5 rules out most DP over values and suggests sorting plus greedy.",
+   "tags": [
+    "greedy"
+   ]
+  },
+  {
+   "id": "greedy#4",
+   "title": "Greedy algorithms > How to practice greedy",
+   "text": "Solve greedy problems in your rating range and, for each one, write the exchange argument in a sentence after getting AC. Keep a list of greedy ideas that failed and why; the same false greedy patterns keep returning. Learn to write a quick brute force and a random test generator, because stress testing is the fastest way to catch a wrong greedy before the judge does.",
+   "tags": [
+    "greedy"
+   ]
+  },
+  {
+   "id": "implementation#1",
+   "title": "Implementation and brute force > Implementation problems",
+   "text": "Implementation problems test whether you can turn a statement into correct code without a clever algorithm. Read the statement twice, write down every rule and edge case, and simulate the examples by hand before coding. Choose simple data representations, split the code into small functions, and avoid copy-pasting blocks with small changes, which is where bugs hide. Most wrong answers here come from misreading the statement or from off-by-one indices.",
+   "tags": [
+    "implementation",
+    "brute force"
+   ]
+  },
+  {
+   "id": "implementation#2",
+   "title": "Implementation and brute force > Brute force and complexity estimates",
+   "text": "Before looking for something clever, estimate if brute force fits: about 1e8 simple operations run in one second. With n up to 20, try all subsets; up to 8 to 10, all permutations; up to 500, O(n^3); up to 5000, O(n^2); up to 2e5, O(n log n). Brute force is also the tool for finding patterns: print answers for small inputs and look for a formula. Keep a brute force solution to stress-test your real one.",
+   "tags": [
+    "implementation",
+    "brute force"
+   ]
+  },
+  {
+   "id": "implementation#3",
+   "title": "Implementation and brute force > Avoiding careless mistakes",
+   "text": "Use long long whenever values can exceed about 2e9. Reset global arrays and counters between test cases, and make sure the sum of n over test cases is what bounds the complexity. Print exactly the required format, including YES or NO casing if the judge is strict. Test edge cases deliberately: n = 1, all equal elements, maximum values, and an empty answer.",
+   "tags": [
+    "implementation",
+    "brute force"
+   ]
+  },
+  {
+   "id": "math#1",
+   "title": "Math and observations > Finding the key observation",
+   "text": "Many math problems at ratings 800 to 1300 hinge on one observation, such as parity (the sum's parity never changes under an operation), an invariant preserved by every move, or the fact that the answer only depends on the minimum, the maximum, or the count of some value. Try small cases, compute the answer by brute force, and look for the pattern before proving it. Write the observation as a sentence; if you cannot, you are probably guessing.",
+   "tags": [
+    "math"
+   ]
+  },
+  {
+   "id": "math#2",
+   "title": "Math and observations > Useful formulas and facts",
+   "text": "The sum 1 + 2 + ... + n is n(n+1)/2. An arithmetic progression's sum is (first + last) * count / 2. Floor division rounds toward zero in C++ for negative numbers, so handle negatives carefully; ceil(a / b) for positive values is (a + b - 1) / b. Avoid floating point when an integer formula exists, and compare squared distances instead of distances to stay exact.",
+   "tags": [
+    "math"
+   ]
+  },
+  {
+   "id": "number-theory#1",
+   "title": "Number theory > Divisibility, gcd and primes",
+   "text": "The greatest common divisor is computed with Euclid's algorithm, gcd(a, b) = gcd(b, a mod b), in O(log min(a, b)); in C++ use std::gcd. lcm(a, b) = a / gcd(a, b) * b, dividing first to avoid overflow. A number n has at most about 2 * sqrt(n) divisors, all found by trying d up to sqrt(n). Trial division up to sqrt(n) tests primality and factorizes a single number. Facts used constantly: gcd of a whole array, the fact that a number is divisible by 3 if its digit sum is, and that any n > 1 has a prime factor at most sqrt(n) or is prime itself.",
+   "tags": [
+    "number theory",
+    "math"
+   ]
+  },
+  {
+   "id": "number-theory#2",
+   "title": "Number theory > Sieve of Eratosthenes",
+   "text": "To find all primes up to N (around 1e7), mark multiples of each prime starting from p * p; the sieve runs in O(N log log N). Store the smallest prime factor of every number instead of a boolean and you can factorize any number up to N in O(log n) by repeatedly dividing by spf[n]. This is the standard tool when a problem asks about the prime factors of many numbers, for example counting how many array elements share a factor.",
+   "tags": [
+    "number theory",
+    "math"
+   ]
+  },
+  {
+   "id": "number-theory#3",
+   "title": "Number theory > Modular arithmetic",
+   "text": "Counting answers are often asked modulo 1e9+7, which is prime. Addition, subtraction and multiplication work modulo m if you reduce after every operation; for subtraction add m before taking the modulo to avoid negatives. Division needs the modular inverse: for prime m, the inverse of a is a^(m-2) mod m by Fermat's little theorem, computed with fast exponentiation in O(log m). Use long long for the product of two values below 1e9+7, because it reaches about 1e18.",
+   "tags": [
+    "number theory",
+    "math"
+   ]
+  },
+  {
+   "id": "number-theory#4",
+   "title": "Number theory > Common mistakes in number theory",
+   "text": "Overflow is the main enemy: a * b with both near 1e9 overflows int, and even long long when both are near 1e18. Loops like for (d = 1; d * d <= n; d++) need d as long long when n is large. Forgetting that 1 is not prime, or that gcd(0, x) = x, causes edge-case failures. When a brute force over divisors is too slow, think about iterating over multiples instead, which totals N log N by the harmonic series.",
+   "tags": [
+    "number theory",
+    "math"
+   ]
+  },
+  {
+   "id": "prefix-sums#1",
+   "title": "Prefix sums and difference arrays > Prefix sums for range queries",
+   "text": "A prefix sum array p where p[i] = a[0] + ... + a[i-1] answers any range sum a[l..r] as p[r+1] - p[l] in O(1) after O(n) preprocessing. The same idea works for counts (how many vowels in a substring), XOR, and two dimensions, where a rectangle sum uses inclusion-exclusion of four prefix values. Use long long because sums overflow int quickly. Prefix sums are the first tool to try whenever a problem asks many questions about subarrays.",
+   "tags": [
+    "data structures",
+    "implementation"
+   ]
+  },
+  {
+   "id": "prefix-sums#2",
+   "title": "Prefix sums and difference arrays > Difference arrays for range updates",
+   "text": "A difference array d with d[i] = a[i] - a[i-1] turns \"add v to every element in [l, r]\" into two O(1) operations: d[l] += v and d[r+1] -= v. After all updates, a prefix sum over d rebuilds the final array. This handles many offline range updates in O(n + q). Combined with sorting events, it also counts how many intervals cover each point, a frequent pattern in Div. 2 B and C problems.",
+   "tags": [
+    "data structures",
+    "implementation"
+   ]
+  },
+  {
+   "id": "prefix-sums#3",
+   "title": "Prefix sums and difference arrays > Subarray counting with prefix sums and a map",
+   "text": "The number of subarrays with sum exactly k equals the number of pairs i < j with p[j] - p[i] = k. Walk j from left to right, add the count of p[j] - k already seen (stored in a map), then record p[j]. This works with negative numbers, unlike a sliding window. The same trick counts subarrays whose sum is divisible by m, by storing prefix sums modulo m.",
+   "tags": [
+    "data structures",
+    "implementation"
+   ]
+  },
+  {
+   "id": "shortest-paths#1",
+   "title": "Shortest paths > Dijkstra's algorithm",
+   "text": "Dijkstra finds shortest paths from one source when all edge weights are non-negative. Keep a priority queue of (distance, vertex) pairs, always pop the closest unfinished vertex, and relax its edges: if dist[u] + w < dist[v], update dist[v] and push it. Skip popped entries whose distance is larger than the stored one (lazy deletion). The complexity is O((n + m) log n). Use long long distances and initialize them to a large value such as 1e18.",
+   "tags": [
+    "shortest paths",
+    "graphs"
+   ]
+  },
+  {
+   "id": "shortest-paths#2",
+   "title": "Shortest paths > Other shortest path algorithms",
+   "text": "Use BFS when all weights are equal, 0-1 BFS when weights are 0 or 1, and Dijkstra for general non-negative weights. Bellman-Ford handles negative weights and detects negative cycles in O(n m). Floyd-Warshall computes all-pairs shortest paths in O(n^3) and fits when n is at most about 400. Choosing the right algorithm from the constraints is a common interview question as well as a contest skill.",
+   "tags": [
+    "shortest paths",
+    "graphs"
+   ]
+  },
+  {
+   "id": "shortest-paths#3",
+   "title": "Shortest paths > Modeling tricks for shortest path problems",
+   "text": "Many problems become shortest path problems after adding information to the vertex. If you may use a coupon once, make a state (vertex, used) and run Dijkstra on the doubled graph. To find shortest paths to a single target in a directed graph, reverse all edges and run from the target. To count shortest paths, keep a ways array and add counts when you find an equal distance. Mistakes to avoid: using int for distances, and running Dijkstra with negative edges.",
+   "tags": [
+    "shortest paths",
+    "graphs"
+   ]
+  },
+  {
+   "id": "sorting#1",
+   "title": "Sorting > Sorting as a first step",
+   "text": "Sorting in O(n log n) often makes a problem simple: after sorting, equal elements are adjacent, the closest pair of values is adjacent, and you can use two pointers or binary search. Sort pairs to process events in order (start and end of intervals), or sort indices by value while keeping the original positions for the output. Ask whether the order of the input matters; if it does not, sorting is almost free.",
+   "tags": [
+    "sortings"
+   ]
+  },
+  {
+   "id": "sorting#2",
+   "title": "Sorting > Custom comparators and their pitfalls",
+   "text": "Sort by a custom key with a comparator or a lambda. A comparator must define a strict weak ordering: it must return false for equal elements, so use a < b, never a <= b, or std::sort can crash or loop. To sort strings so their concatenation is smallest, compare a + b with b + a. For stable ordering of equal keys, use stable_sort. Counting sort works in O(n + k) when values are small integers.",
+   "tags": [
+    "sortings"
+   ]
+  },
+  {
+   "id": "sorting#3",
+   "title": "Sorting > Exchange arguments for sorting orders",
+   "text": "When the answer depends on the order of processing items, compare two adjacent items i and j: which order, i before j or j before i, gives a better result? If the comparison reduces to a rule based on each item alone, sort by that rule. This is how the classic scheduling problems are solved, and it is the proof technique behind many greedy-by-sorting solutions.",
+   "tags": [
+    "sortings"
+   ]
+  },
+  {
+   "id": "strings#1",
+   "title": "Strings > String basics for contests",
+   "text": "Most string problems at ratings 800 to 1400 need counting and careful implementation: frequency arrays of 26 letters, checking palindromes with two pointers, comparing a string with its reverse, and counting occurrences of a short pattern by sliding over every position. Build strings with += in a loop rather than repeated s = s + c, which copies the whole string each time and becomes O(n^2). Remember that substr(pos, len) takes a length, not an end index.",
+   "tags": [
+    "strings",
+    "hashing"
+   ]
+  },
+  {
+   "id": "strings#2",
+   "title": "Strings > Pattern matching with prefix function and Z-function",
+   "text": "To find all occurrences of a pattern p in a text t in O(n + m), compute the prefix function (KMP) of p + '#' + t: positions where the value equals |p| mark matches. The Z-function gives, for each position, the length of the longest substring starting there that matches a prefix of the string; it also finds periods and borders. These two are interchangeable for most problems; learn one well.",
+   "tags": [
+    "strings",
+    "hashing"
+   ]
+  },
+  {
+   "id": "strings#3",
+   "title": "Strings > String hashing",
+   "text": "Polynomial hashing maps a string to a number, h = s[0] * B^(n-1) + ... + s[n-1] mod M, and prefix hashes let you compare any two substrings in O(1). Use a random base and a large modulus (or two moduli) to avoid collisions and anti-hash tests. Hashing plus binary search finds the longest common substring or the longest repeated substring in O(n log n).",
+   "tags": [
+    "strings",
+    "hashing"
+   ]
+  },
+  {
+   "id": "trees#1",
+   "title": "Trees > Tree basics and traversal",
+   "text": "A tree is a connected graph with n vertices and n - 1 edges and no cycles, so there is exactly one path between any two vertices. Root it at vertex 1 and run a DFS that passes the parent, so you never walk back up. In one DFS you can compute depth, parent, subtree size, and any value that combines children, such as the sum of a subtree. Process children first and then combine (post-order) for subtree answers.",
+   "tags": [
+    "trees",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "trees#2",
+   "title": "Trees > Tree DP and the diameter",
+   "text": "Tree DP stores an answer for each subtree, for example dp[v][0 or 1] for the maximum independent set where v is or is not chosen, combining the children's values. The diameter (the longest path) can be found with two BFS or DFS runs: from any vertex find the farthest vertex a, then from a find the farthest vertex b; the distance from a to b is the diameter. Rerooting computes an answer for every possible root in O(n) by moving the root across each edge and updating the values.",
+   "tags": [
+    "trees",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "trees#3",
+   "title": "Trees > Common mistakes with trees",
+   "text": "Deep recursion on a path-shaped tree with n = 2e5 can overflow the stack. The input may give edges without saying which end is the parent, so always root the tree yourself. Remember that a tree with n vertices has exactly n - 1 edges; a problem that says \"graph with n - 1 edges, connected\" is describing a tree. Reset adjacency lists between test cases.",
+   "tags": [
+    "trees",
+    "dfs and similar"
+   ]
+  },
+  {
+   "id": "two-pointers#1",
+   "title": "Two pointers and sliding window > The two pointers technique",
+   "text": "Two pointers walks two indices through an array, usually both moving only forward, so the total work is O(n) instead of O(n^2). It works when moving one pointer never requires moving the other one back. Classic uses: finding a pair with a given sum in a sorted array (one pointer at each end, move the one that brings the sum closer), merging two sorted arrays, and removing duplicates in place. Sorting first is often what makes two pointers possible.",
+   "tags": [
+    "two pointers"
+   ]
+  },
+  {
+   "id": "two-pointers#2",
+   "title": "Two pointers and sliding window > Sliding window",
+   "text": "A sliding window keeps a segment [l, r] that satisfies a condition. Extend r one step at a time, and while the window becomes invalid, move l forward. This answers questions like the longest subarray with sum at most S (non-negative numbers), the longest substring without repeated characters, or the number of subarrays with at most k distinct values, all in O(n). The window needs a cheap way to update its state when an element enters or leaves: a running sum, a frequency array or a map of counts.",
+   "tags": [
+    "two pointers"
+   ]
+  },
+  {
+   "id": "two-pointers#3",
+   "title": "Two pointers and sliding window > Common mistakes with two pointers",
+   "text": "Sliding window on sums only works when all numbers are non-negative; with negative numbers the window condition is no longer monotonic and you need prefix sums with a map or another approach. Forgetting to update the window state when the left pointer moves is the most common bug. When counting subarrays, add r - l + 1 for each r, which counts all valid windows ending at r. Check that the left pointer never passes the right one.",
+   "tags": [
+    "two pointers"
+   ]
+  },
+  {
+   "id": "two-pointers#4",
+   "title": "Two pointers and sliding window > How to practice two pointers",
+   "text": "Solve a few problems that are explicitly about pairs in sorted arrays, then several \"longest or shortest subarray such that\" problems. Before coding, state why the left pointer never has to move back. Two pointers often appears together with sorting and binary search, so if a binary search solution is O(n log n), check whether two pointers gives O(n).",
+   "tags": [
+    "two pointers"
+   ]
+  }
+ ]
+}
