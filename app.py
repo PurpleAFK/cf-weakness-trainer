@@ -7,6 +7,7 @@ API calls from repeating.
 import requests
 import streamlit as st
 
+import llm
 from coach import analyze, load_baseline, load_problemset, load_user, valid_handle
 
 st.set_page_config(page_title="CF Practice Coach", page_icon="🎯", layout="wide")
@@ -64,6 +65,24 @@ c1.metric("Current rating", ctx["current_rating"] or "unrated")
 c2.metric("Problems attempted", len(attempts))
 c3.metric("Solved", int(attempts["solved"].sum()))
 c4.metric("Practice window", f"{lo}–{hi}")
+
+st.subheader("Coach's notes")
+client = llm.client_from_env()
+if client is None:
+    st.caption(
+        "LLM explanations are off. Set `GROQ_API_KEY` (or `LLM_PROVIDER=ollama` with Ollama "
+        "running) to turn them on. Showing the rule-based summary instead."
+    )
+if st.button("Explain my weak spots", disabled=client is None) or client is None:
+    with st.spinner("Asking the model…"):
+        report, meta = llm.explain(ctx, client)
+    st.markdown(f"**{report.summary}**")
+    for t in report.tags:
+        st.markdown(f"- **{t.tag}**: {t.diagnosis}  \n  💡 {t.hint}")
+    st.markdown(f"**Next step:** {report.next_step}")
+    if client is not None:
+        label = f"model `{client.model}`" if meta["source"] == "llm" else "rule-based fallback"
+        st.caption(f"Source: {label}, {meta['attempts']} attempt(s).")
 
 st.subheader("Recommended problems")
 if recs.empty:
