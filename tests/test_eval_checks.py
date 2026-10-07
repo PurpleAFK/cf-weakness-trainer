@@ -88,3 +88,28 @@ def test_every_case_is_well_formed():
         for f in c["profile"]["focus_tags"]:
             assert llm.required_facts(f)
     assert under("dp", 1, 2, 3, 4)["window_share"] == "2% of problems rated 3-4"
+
+
+def test_runner_passes_the_filters_flag():
+    # Regression: --no-filters once only changed the config name, not the behavior.
+    from evals.cases import CASES as ALL
+    from evals.run_evals import run_case
+
+    class Echo:
+        model, json_schema = "fake", False
+
+        def chat(self, messages, temperature=0.2, schema=None):
+            raise AssertionError("must not be called: no focus tags survive")
+
+    c13 = next(c for c in ALL if c["id"].startswith("c13"))
+    on = run_case(c13, Echo(), None, check_facts=True, filters=True)
+    assert on["meta"]["dropped"]["tags"]
+
+    class Records(Echo):
+        def chat(self, messages, temperature=0.2, schema=None):
+            self.called = True
+            return "{}"
+
+    client = Records()
+    off = run_case(c13, client, None, check_facts=True, filters=False)
+    assert client.called and not off["meta"]["dropped"]["tags"]

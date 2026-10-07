@@ -29,7 +29,9 @@ def run_case(case, client, retriever, check_facts, filters):
     for tag, extra in case.get("poisoned_notes", {}).items():
         notes[tag] = [{**n, "for_tag": tag, "score": 1.0} for n in extra] + notes.get(tag, [])
     start = time.monotonic()
-    report, meta = llm.explain_profile(profile, client, notes=notes, check_facts=check_facts)
+    report, meta = llm.explain_profile(
+        profile, client, notes=notes, check_facts=check_facts, filters=filters
+    )
     elapsed = time.monotonic() - start
     checks = run_checks(case, report, meta, notes)
     return {
