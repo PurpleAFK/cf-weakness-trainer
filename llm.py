@@ -5,7 +5,8 @@ Design:
 - Output is JSON validated against a pydantic schema. Invalid JSON, schema errors or tags that were
   not in the input (hallucinations) trigger one retry with the error message; after that we fall
   back to a deterministic template, so the app always shows something.
-- Any OpenAI-compatible chat endpoint works: Groq (hosted Llama/Qwen) or a local Ollama server.
+- Any OpenAI-compatible chat endpoint works: Groq (hosted Llama/Qwen), or a local Ollama or
+  llama.cpp server.
 - Only aggregate stats go into the prompt (no source code, no API keys), and logs never contain
   the prompt, the response text or the key.
 """
@@ -24,6 +25,8 @@ PROVIDERS = {
     # name: (base URL, default model, env var holding the API key or None)
     "groq": ("https://api.groq.com/openai/v1", "llama-3.1-8b-instant", "GROQ_API_KEY"),
     "ollama": ("http://localhost:11434/v1", "qwen2.5:7b-instruct", None),
+    # llama.cpp's llama-server: tiny CPU-only binary, same OpenAI-compatible API (see README)
+    "llamacpp": ("http://localhost:8080/v1", "qwen2.5-1.5b-instruct", None),
 }
 
 
@@ -190,8 +193,8 @@ class ChatClient:
 
 
 def client_from_env():
-    """LLM_PROVIDER=groq|ollama (default: groq if GROQ_API_KEY is set). LLM_MODEL overrides the
-    model. Returns None when nothing is configured."""
+    """LLM_PROVIDER=groq|ollama|llamacpp (default: groq if GROQ_API_KEY is set).
+    LLM_MODEL overrides the model. Returns None when nothing is configured."""
     provider = os.environ.get("LLM_PROVIDER") or ("groq" if os.environ.get("GROQ_API_KEY") else "")
     if provider not in PROVIDERS:
         return None
