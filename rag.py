@@ -21,6 +21,7 @@ embedding knows the topic even when the section text doesn't repeat it.
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -197,6 +198,20 @@ def query_for(focus):
     if focus["kind"] == "weak":
         return f"{focus['tag']}: common mistakes and how to avoid wrong submissions"
     return f"{focus['tag']}: the basic technique and how to start practicing it"
+
+
+# Instruction-like text has no place in technique notes. A note that matches is dropped before it
+# reaches the prompt or the fallback (defense against a poisoned knowledge base; see evals c14).
+INJECTION_RE = re.compile(
+    r"ignore (all |any |the )?(previous |prior |above )?(instructions|rules)"
+    r"|system (override|prompt|message|note)|disregard|you are now|https?://|www\."
+    r"|\b[\w-]+\.(com|net|org|io|xyz|ru)\b",
+    re.IGNORECASE,
+)
+
+
+def looks_like_injection(text):
+    return bool(INJECTION_RE.search(text))
 
 
 _retriever = None
