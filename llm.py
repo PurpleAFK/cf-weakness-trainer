@@ -22,10 +22,13 @@ Design:
 import json
 import logging
 import os
+import re
 import time
 
 import requests
 from pydantic import BaseModel, Field, ValidationError
+
+import rag
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +39,10 @@ PROVIDERS = {
     # llama.cpp's llama-server: tiny CPU-only binary, same OpenAI-compatible API (see README)
     "llamacpp": ("http://localhost:8080/v1", "qwen2.5-1.5b-instruct", None, True),
 }
+
+# Codeforces tags are short lowercase words ("dp", "2-sat", "dfs and similar"). Anything else
+# arriving as a tag (e.g. injected instructions) is dropped before it reaches the prompt.
+TAG_RE = re.compile(r"^[a-z0-9][a-z0-9 \-]{0,29}$")
 
 # Field length limits, shared by the pydantic models and the JSON schema sent to the server.
 MAX_LEN = {"summary": 500, "diagnosis": 300, "hint": 400, "next_step": 400}
@@ -54,19 +61,39 @@ class CoachReport(BaseModel):
     next_step: str = Field(max_length=MAX_LEN["next_step"])
 
 
-def report_schema(allowed_tags, allowed_sources):
-    """JSON schema for exactly this request: tags fixed in order, each with its own allowed ids."""
+def _regex_escape(text):
+    return re.sub(r"([.^$*+?()\[\]{}|\\])", r"\\\1", text)
+
+
+def diagnosis_prefix(focus):
+    """The exact opening of a faithful diagnosis, e.g. "2 of 3 problems solved"."""
+    if focus["kind"] == "weak":
+        return f"{focus['solved']} solved"
+    return f"{focus['your_share']} vs {focus['window_share']}"
+
+
+def report_schema(allowed_tags, allowed_sources, prefixes=None):
+    """JSON schema for exactly this request: tags fixed in order, each with its own allowed ids,
+    and (with prefixes) each diagnosis forced to start with the tag's numbers."""
 
     def text(field):
         return {"type": "string", "minLength": 1, "maxLength": MAX_LEN[field]}
 
     def item(tag):
         ids = sorted(allowed_sources.get(tag, ()))
+        prefix = (prefixes or {}).get(tag)
+        diagnosis = text("diagnosis")
+        if prefix:  # force the diagnosis to open with the profile's numbers, verbatim
+            rest = MAX_LEN["diagnosis"] - len(prefix)
+            diagnosis = {
+                "type": "string",
+                "pattern": f'^{_regex_escape(prefix)}[^"\\\\]{{0,{rest}}}$',
+            }
         return {
             "type": "object",
             "properties": {
                 "tag": {"const": tag},
-                "diagnosis": text("diagnosis"),
+                "diagnosis": diagnosis,
                 "hint": text("hint"),
                 "source": {"enum": [*ids, None]} if ids else {"type": "null"},
             },
@@ -97,6 +124,8 @@ programming techniques inside <notes> tags. Explain the profile and give practic
 
 Rules:
 - Use only the facts in the profile. Do not invent statistics, ratings or problem names.
+- Start each diagnosis with the tag's numbers exactly as the profile writes them, e.g.
+  "9 of 14 problems solved ..." or "1% of your problems vs 12% of problems rated 1300-1500 ...".
 - Write one entry in "tags" for each tag listed in "focus_tags", using exactly the same tag names.
 - Base each hint on a note listed for that tag and put that note's id (like "dp#2") in "source".
   If no note is listed for a tag, give a general technique hint and set "source" to null.
@@ -151,15 +180,16 @@ EXAMPLE_REPLY = {
     "tags": [
         {
             "tag": "greedy",
-            "diagnosis": "9 of 14 solved with about 1.8 wrong submits each: the ideas come, but "
-            "they are often unproven.",
+            "diagnosis": "9 of 14 problems solved, with 1.8 wrong submits per problem: the ideas "
+            "come, but they are often unproven.",
             "hint": "Stress-test greedy ideas: a brute force for tiny inputs plus random tests "
             "catches a false greedy before the judge does.",
             "source": "greedy#3",
         },
         {
             "tag": "graphs",
-            "diagnosis": "Only 1% of your problems vs 12% of the window: an unexplored area.",
+            "diagnosis": "1% of your problems vs 12% of problems rated 1300-1500: an unexplored "
+            "area for you.",
             "hint": "Start with connected components and BFS on grids, and always write down what "
             "the vertices and edges are first.",
             "source": "graphs#5",
@@ -376,15 +406,41 @@ def explain(ctx, client, retriever=None, retries=1):
     return explain_profile(build_profile(ctx), client, retriever, retries)
 
 
-def explain_profile(profile, client, retriever=None, retries=1, notes=None, check_facts=True):
+def apply_input_filters(profile, notes):
+    """Defense in depth against prompt injection in *data*: drop focus tags that don't look like
+    Codeforces tags, and retrieved notes that contain instruction-like text."""
+    kept = [f for f in profile["focus_tags"] if TAG_RE.fullmatch(f["tag"])]
+    dropped = {
+        "tags": [f["tag"] for f in profile["focus_tags"] if f not in kept],
+        "notes": [
+            n["id"]
+            for ns in notes.values()
+            for n in ns
+            if rag.looks_like_injection(f"{n['title']} {n['text']}")
+        ],
+    }
+    clean_notes = {
+        f["tag"]: [n for n in notes.get(f["tag"], []) if n["id"] not in dropped["notes"]]
+        for f in kept
+    }
+    return {**profile, "focus_tags": kept}, clean_notes, dropped
+
+
+def explain_profile(
+    profile, client, retriever=None, retries=1, notes=None, check_facts=True, filters=True
+):
     """Core of explain(), on an already-built profile (the evals call this directly).
 
     notes: pre-retrieved {tag: [note dicts]}; retrieved with `retriever` when not given.
     check_facts: reject diagnoses that leave out the profile's numbers (see parse_report).
+    filters: drop suspicious tags and notes first (apply_input_filters).
     """
-    allowed = [f["tag"] for f in profile["focus_tags"]]
     if notes is None:
         notes = retrieve_notes(profile, retriever)
+    dropped = {"tags": [], "notes": []}
+    if filters:
+        profile, notes, dropped = apply_input_filters(profile, notes)
+    allowed = [f["tag"] for f in profile["focus_tags"]]
     allowed_sources = {tag: {n["id"] for n in ns} for tag, ns in notes.items()}
     facts = {f["tag"]: required_facts(f) for f in profile["focus_tags"]} if check_facts else None
     meta = {
@@ -392,12 +448,20 @@ def explain_profile(profile, client, retriever=None, retries=1, notes=None, chec
         "attempts": 0,
         "errors": [],
         "notes": {tag: [n["id"] for n in ns] for tag, ns in notes.items()},
+        "dropped": dropped,
     }
+    if dropped["tags"] or dropped["notes"]:
+        log.warning(
+            "dropped suspicious input: %d tags, notes %s", len(dropped["tags"]), dropped["notes"]
+        )
     if client is None or not allowed:
         return fallback_report(profile, notes), meta
 
     messages = build_messages(profile, notes)
-    schema = report_schema(allowed, allowed_sources)
+    prefixes = (
+        {f["tag"]: diagnosis_prefix(f) for f in profile["focus_tags"]} if check_facts else None
+    )
+    schema = report_schema(allowed, allowed_sources, prefixes)
     for _ in range(retries + 1):
         meta["attempts"] += 1
         start = time.monotonic()
