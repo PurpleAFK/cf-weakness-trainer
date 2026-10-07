@@ -2,6 +2,82 @@
 
 CF Practice Coach: pulls a user's Codeforces submission history, profiles their weak tags and rating bands from verdict patterns, and recommends targeted problems.
 
+## How it works
+
+```
+Codeforces API ──> fetch_data.py ──> data/raw/*.json snapshots
+                       │
+                       v
+               profiler.py: submissions -> attempts (one row per problem)
+                            -> per-tag profile (smoothed solve rate, wrong submits, weakness)
+                            -> rating bands, practice window
+                       │            ^
+                       │            └── cohort_baseline.json (per-tag averages of ~25 peers, cohort.py)
+                       v
+               recommender.py: weak + under-practiced tags -> unsolved problems in the window
+                       │
+                       v
+               llm.py (optional): profile -> LLM -> validated JSON coaching notes (or fallback)
+                       │
+                       v
+               app.py (Streamlit)  /  coach.py (CLI)
+```
+
+- **Attempt:** one row per problem. Wrong submits are counted only before the first AC; compilation
+  errors are ignored.
+- **Weakness score:** `difficulty = (1 - solve rate) + 0.15 * wrong submits per problem`, and
+  `weakness = difficulty(you) - difficulty(reference)`. The reference is the cohort's average for that
+  tag (or your own overall average without a baseline). Small samples are smoothed with 3
+  pseudo-attempts at the reference rate. A tag needs at least 3 attempts and weakness >= 0.05.
+- **Under-practiced tag:** its share of your problems is less than half its share among problems in
+  your practice window.
+- **Practice window:** `max(current rating, median rating of your last 30 solves)`, rounded down to
+  100, then +100 to +300.
+- **Ordering:** problems you tried and failed come first, then a rating ladder (most-solved problem at
+  each rating), with focus tags taking turns.
+- **LLM notes:** only aggregate stats are sent. The reply must match a pydantic schema and mention
+  exactly the focus tags. Otherwise it is retried once with the error, then replaced by a rule-based
+  summary.
+
+## Setup
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+```
+
+## Usage
+
+```bash
+python coach.py <handle>          # CLI report
+streamlit run app.py              # web UI on http://localhost:8501
+python cohort.py                  # rebuild cohort_baseline.json (~10 minutes, rate-limited)
+pytest                            # tests use fake data, no network
+```
+
+Optional LLM notes (any OpenAI-compatible endpoint):
+
+```bash
+export GROQ_API_KEY=...                 # hosted, free tier: https://console.groq.com
+# or, fully local:
+export LLM_PROVIDER=ollama              # with `ollama serve` running and the model pulled
+export LLM_MODEL=qwen2.5:7b-instruct    # optional model override
+```
+
+## Files
+
+| File | Role |
+|---|---|
+| `fetch_data.py` | Rate-limited (2.2 s) Codeforces API client, pagination, raw snapshots |
+| `snapshots.py` | Find and load the newest snapshot |
+| `profiler.py` | Attempts, per-tag profile, rating bands, practice window, cohort baseline |
+| `recommender.py` | Problem pool, under-practiced tags, recommendations |
+| `coach.py` | End-to-end pipeline + CLI, handle validation, snapshot caching |
+| `cohort.py` | Builds the ~25-user cohort and `cohort_baseline.json` |
+| `llm.py` | Prompt, schema, validation/retry/fallback, OpenAI-compatible client |
+| `app.py` | Streamlit UI |
+| `audit.py` | Early exploratory script |
+
 ## TODO
 
 Done:
