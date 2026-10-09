@@ -4,30 +4,24 @@ CF Practice Coach: pulls a user's Codeforces submission history, profiles their 
 
 ## How it works
 
+```mermaid
+flowchart TD
+    CF[(Codeforces API)] -->|rate-limited, paginated| F[fetch_data.py]
+    F --> S[(data/raw snapshots)]
+    S --> P["profiler.py<br/>attempts → per-tag weakness<br/>rating bands, practice window"]
+    B[(cohort_baseline.json<br/>25 peers, cohort.py)] --> P
+    P --> R["recommender.py<br/>weak + under-practiced tags<br/>→ unsolved problems in window"]
+    K[(knowledge/*.md<br/>63 note sections)] -->|bge-small embeddings| I[(knowledge/index.*)]
+    I --> G["rag.py<br/>tag filter + cosine rank"]
+    P --> L
+    G -->|notes with ids| L["llm.py<br/>input filters → prompt + JSON schema<br/>→ validate → retry → fallback"]
+    M{{"LLM server<br/>llama.cpp / Ollama / Groq"}} <--> L
+    R --> UI["app.py (Streamlit) / coach.py (CLI)"]
+    L -->|cited coaching notes| UI
+    E["evals/<br/>15 cases × 11 checks, A/B configs"] -.-> L
+    E -.-> G
 ```
-Codeforces API ──> fetch_data.py ──> data/raw/*.json snapshots
-                       │
-                       v
-               profiler.py: submissions -> attempts (one row per problem)
-                            -> per-tag profile (smoothed solve rate, wrong submits, weakness)
-                            -> rating bands, practice window
-                       │            ^
-                       │            └── cohort_baseline.json (per-tag averages of ~25 peers, cohort.py)
-                       v
-               recommender.py: weak + under-practiced tags -> unsolved problems in the window
-                       │
-                       v
-               rag.py: per focus tag, tag-filtered cosine search over knowledge/ notes
-                       │      (63 sections, bge-small embeddings, committed index)
-                       v
-               llm.py (optional): profile + retrieved notes -> LLM (JSON schema)
-                       -> validated, cited coaching notes (or rule-based fallback)
-                       │
-                       v
-               app.py (Streamlit)  /  coach.py (CLI)
 
-               evals/: 15 cases x 11 checks against a real model; retrieval comparison
-```
 
 - **Attempt:** one row per problem. Wrong submits are counted only before the first AC; compilation
   errors are ignored.
@@ -56,6 +50,35 @@ Codeforces API ──> fetch_data.py ──> data/raw/*.json snapshots
 - **Evals:** `python -m evals.run_evals` runs 15 fixed cases (including prompt injection through a
   tag name and through a poisoned note) and 11 checks, and compares configurations in
   `evals/RESULTS.md`.
+
+## Run with Docker
+
+```bash
+docker build -t cf-coach .
+docker run --rm -p 8501:8501 cf-coach                          # rule-based notes + RAG hints
+docker run --rm -p 8501:8501 -e GROQ_API_KEY=... cf-coach      # hosted model
+# a model server on the host (llama.cpp on :8080):
+docker run --rm -p 8501:8501 --add-host=host.docker.internal:host-gateway \
+  -e LLM_PROVIDER=llamacpp -e LLM_BASE_URL=http://host.docker.internal:8080/v1 cf-coach
+```
+
+The image runs as a non-root user, installs dependencies in their own cached layer, includes the
+embedding model (no download at first request) and has a healthcheck on `/_stcore/health`.
+If `pip install` can't resolve hosts during the build (a common Docker DNS issue on some Linux
+hosts), build with `docker build --network host -t cf-coach .`.
+
+## Design decisions
+
+| Decision | Why |
+|---|---|
+| Streamlit calls Python functions directly (no API server) | one process, one language; `coach.analyze()` is pure, so an API can wrap it later |
+| Smoothed weakness vs a peer cohort | small samples don't produce extreme rates; tags hard for everyone aren't flagged |
+| Seeded random cohort, not standings order | standings order picked alt accounts (selection bias), see `NOTES.md` |
+| The LLM only explains computed numbers | facts come from code; the model can't invent statistics or problems |
+| Hybrid retrieval (tag filter + embeddings) | dense-only couldn't detect "no relevant note" (`evals/RETRIEVAL.md`) |
+| JSON-schema constrained decoding + validation | valid output 15/30 → 30/30 on a 1.5B model (`evals/RESULTS.md`) |
+| Input filters for tags and retrieved notes | without them the model followed a poisoned note 1 time in 3 |
+| Local model support (llama.cpp) | data stays on the machine; no API key needed |
 
 ## Setup
 
@@ -150,8 +173,8 @@ Evals:
 - [x] Two prompt-injection cases (tag name, poisoned note)
 
 Ship:
-- [ ] Dockerfile (after the un-containerized deploy works)
-- [ ] README: setup, usage, architecture diagram, design decisions
+- [x] Dockerfile (non-root, healthcheck; built and run end to end locally)
+- [x] README: setup, usage, architecture diagram (Mermaid), design decisions
 - [ ] Resume updated with only what actually works
 
 Stretch (not before the interview):
