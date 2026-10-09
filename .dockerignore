@@ -1,0 +1,13 @@
+# Keep the build context small and secrets/local state out of the image.
+.git
+.venv
+.claude
+dev
+data
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+*.db
+.streamlit/secrets.toml
+.env
