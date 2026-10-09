@@ -388,7 +388,8 @@ class ChatClient:
 
 def client_from_env():
     """LLM_PROVIDER=groq|ollama|llamacpp (default: groq if GROQ_API_KEY is set).
-    LLM_MODEL overrides the model. Returns None when nothing is configured."""
+    LLM_MODEL overrides the model and LLM_BASE_URL the server address (needed in Docker, where
+    "localhost" is the container itself). Returns None when nothing is configured."""
     provider = os.environ.get("LLM_PROVIDER") or ("groq" if os.environ.get("GROQ_API_KEY") else "")
     if provider not in PROVIDERS:
         return None
@@ -398,6 +399,7 @@ def client_from_env():
         return None
     if os.environ.get("LLM_JSON_SCHEMA") in ("0", "1"):  # override, e.g. for A/B evals
         json_schema = os.environ["LLM_JSON_SCHEMA"] == "1"
+    base_url = os.environ.get("LLM_BASE_URL", base_url)
     return ChatClient(base_url, os.environ.get("LLM_MODEL", model), key, json_schema=json_schema)
 
 

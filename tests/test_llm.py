@@ -148,7 +148,7 @@ def test_api_key_never_logged_or_in_repr(monkeypatch, caplog):
     ],
 )
 def test_client_from_env(monkeypatch, env, expected):
-    for var in ("GROQ_API_KEY", "LLM_PROVIDER", "LLM_MODEL"):
+    for var in ("GROQ_API_KEY", "LLM_PROVIDER", "LLM_MODEL", "LLM_BASE_URL"):
         monkeypatch.delenv(var, raising=False)
     for k, v in env.items():
         monkeypatch.setenv(k, v)
@@ -260,3 +260,12 @@ def test_required_facts():
     weak, under = llm.build_profile(_ctx())["focus_tags"]
     assert llm.required_facts(weak) == ["2 of 4"]
     assert llm.required_facts(under) == ["1%", "12%"]
+
+
+def test_base_url_override(monkeypatch):
+    # In Docker the model server is on the host, not on the container's localhost.
+    monkeypatch.setenv("LLM_PROVIDER", "llamacpp")
+    monkeypatch.setenv("LLM_BASE_URL", "http://host.docker.internal:8080/v1/")
+    client = llm.client_from_env()
+    assert client.base_url == "http://host.docker.internal:8080/v1"
+    assert client.json_schema
