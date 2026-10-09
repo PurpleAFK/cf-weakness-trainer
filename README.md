@@ -6,12 +6,12 @@ CF Practice Coach: pulls a user's Codeforces submission history, profiles their 
 
 ```mermaid
 flowchart TD
-    CF[(Codeforces API)] -->|rate-limited, paginated| F[fetch_data.py]
-    F --> S[(data/raw snapshots)]
+    CF[("Codeforces API")] -->|rate-limited, paginated| F["fetch_data.py"]
+    F --> S[("data/raw snapshots")]
     S --> P["profiler.py<br/>attempts → per-tag weakness<br/>rating bands, practice window"]
-    B[(cohort_baseline.json<br/>25 peers, cohort.py)] --> P
+    B[("cohort_baseline.json<br/>25 peers, cohort.py")] --> P
     P --> R["recommender.py<br/>weak + under-practiced tags<br/>→ unsolved problems in window"]
-    K[(knowledge/*.md<br/>63 note sections)] -->|bge-small embeddings| I[(knowledge/index.*)]
+    K[("knowledge/*.md<br/>63 note sections")] -->|bge-small embeddings| I[("knowledge/index.*")]
     I --> G["rag.py<br/>tag filter + cosine rank"]
     P --> L
     G -->|notes with ids| L["llm.py<br/>input filters → prompt + JSON schema<br/>→ validate → retry → fallback"]
