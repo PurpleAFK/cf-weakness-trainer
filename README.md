@@ -80,6 +80,23 @@ hosts), build with `docker build --network host -t cf-coach .`.
 | Input filters for tags and retrieved notes | without them the model followed a poisoned note 1 time in 3 |
 | Local model support (llama.cpp) | data stays on the machine; no API key needed |
 
+## Limitations
+
+- **One small model evaluated.** All eval numbers come from Qwen2.5-1.5B-Instruct (4-bit, CPU,
+  llama.cpp). The Groq and Ollama configurations are implemented but untested.
+- **Groundedness is the weak spot.** In the default configuration, every hint shared at least 30% of
+  its words with its cited note in 18/26 case-runs, and the citations pointed to the best-matching
+  note in 17/26. Shape and numbers are enforced; whether a
+  hint truly follows its note is only measured, not guaranteed.
+- **Small eval set.** 15 cases, each run 1–3 times per configuration, so the results show
+  direction, not precise rates.
+- **Small baseline.** The cohort is 25 users; a tag's baseline is used only when at least 3 of them
+  attempted it, otherwise the user's own average is the reference.
+- **Knowledge base coverage.** 19 hand-written notes; a focus tag without a note gets no retrieved
+  context (by design, rather than an irrelevant one).
+- **Single process.** The 2.2 s rate limiter is module-level, so concurrent users queue, and
+  snapshots live on local disk (lost on a hosted restart).
+
 ## Setup
 
 ```bash
